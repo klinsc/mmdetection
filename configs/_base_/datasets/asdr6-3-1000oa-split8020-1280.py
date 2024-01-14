@@ -73,6 +73,7 @@ val_evaluator = dict(
     ann_file=data_root + "annotations/val.json",
     metric="bbox",
     format_only=False,
+    proposal_nums=(100, 1, 10),
     backend_args=backend_args,
 )
 test_evaluator = val_evaluator
