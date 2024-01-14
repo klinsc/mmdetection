@@ -37,7 +37,10 @@ val_dataloader = dict(
 )
 test_dataloader = val_dataloader
 
-runner = dict(type="EpochBasedRunner", max_epochs=3)
+train_cfg = dict(
+    max_epochs=3,  # Maximum training epochs
+    val_interval=1,
+)
 
 # Modify metric related settings
 val_evaluator = dict(ann_file=data_root + "val/annotation_coco.json")
