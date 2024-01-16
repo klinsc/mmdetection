@@ -32,8 +32,10 @@ train_pipeline = [
     #     ],
     #     keep_ratio=True,
     # ),
-    # resize to 1280x1280
-    dict(type="Resize", scale=(1280, 1280), keep_ratio=True),
+    # # resize to 1280x1280
+    # dict(type="Resize", scale=(1280, 1280), keep_ratio=True),
+    # resize to 640x640
+    dict(type="Resize", scale=(640, 640), keep_ratio=True),
     dict(type="RandomFlip", prob=0.5),
     dict(type="PackDetInputs"),
 ]
