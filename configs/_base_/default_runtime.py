@@ -15,10 +15,20 @@ env_cfg = dict(
     dist_cfg=dict(backend="nccl"),
 )
 
-vis_backends = [
-    dict(type="LocalVisBackend"),
-    dict(type="WandbVisBackend", init_kwargs=dict(project="mmyolo-tools")),
-]
+# visualization config
+import os
+
+isTest = os.environ.get("MMYOLO_TEST", "false").lower() == "true"
+vis_backends = None
+if isTest:
+    vis_backends = [dict(type="LocalVisBackend")]
+else:
+    vis_backends = [
+        dict(type="LocalVisBackend"),
+        dict(type="WandbVisBackend", init_kwargs=dict(project="mmyolo-tools")),
+    ]
+
+# visualization config
 visualizer = dict(
     type="DetLocalVisualizer", vis_backends=vis_backends, name="visualizer"
 )
