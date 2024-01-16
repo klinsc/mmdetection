@@ -86,7 +86,7 @@ metainfo = {
     "palette": palette,
 }
 
-train_dataloader = dict(dataset=dict(metainfo=metainfo))
+train_dataloader = dict(dataset=dict(metainfo=metainfo), batch_size=16, num_workers=8)
 val_dataloader = dict(dataset=dict(metainfo=metainfo))
 test_dataloader = val_dataloader
 
