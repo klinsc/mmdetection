@@ -1,4 +1,4 @@
-_base_ = "./faster-rcnn_r50_fpn_300e_asdr.py"
+_base_ = "./faster-rcnn_r50_fpn_300e_asdr_640.py"
 model = dict(
     data_preprocessor=dict(
         type="DetDataPreprocessor",

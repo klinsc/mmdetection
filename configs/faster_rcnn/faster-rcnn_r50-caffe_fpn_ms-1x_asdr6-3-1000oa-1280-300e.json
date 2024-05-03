@@ -1,0 +1,782 @@
+{
+  "model": {
+    "type": "FasterRCNN",
+    "data_preprocessor": {
+      "type": "DetDataPreprocessor",
+      "mean": [103.53, 116.28, 123.675],
+      "std": [1.0, 1.0, 1.0],
+      "bgr_to_rgb": false,
+      "pad_size_divisor": 32
+    },
+    "backbone": {
+      "type": "ResNet",
+      "depth": 50,
+      "num_stages": 4,
+      "out_indices": [0, 1, 2, 3],
+      "frozen_stages": 1,
+      "norm_cfg": { "type": "BN", "requires_grad": false },
+      "norm_eval": true,
+      "style": "caffe",
+      "init_cfg": {
+        "type": "Pretrained",
+        "checkpoint": "open-mmlab://detectron2/resnet50_caffe"
+      }
+    },
+    "neck": {
+      "type": "FPN",
+      "in_channels": [256, 512, 1024, 2048],
+      "out_channels": 256,
+      "num_outs": 5
+    },
+    "rpn_head": {
+      "type": "RPNHead",
+      "in_channels": 256,
+      "feat_channels": 256,
+      "anchor_generator": {
+        "type": "AnchorGenerator",
+        "strides": [8, 16, 32, 64],
+        "base_sizes": [
+          [
+            [6, 5],
+            [5, 8],
+            [8, 12]
+          ],
+          [
+            [12, 8],
+            [16, 10],
+            [10, 16]
+          ],
+          [
+            [7, 29],
+            [28, 12],
+            [16, 26]
+          ],
+          [
+            [32, 31],
+            [39, 41],
+            [67, 65]
+          ]
+        ]
+      },
+      "bbox_coder": {
+        "type": "DeltaXYWHBBoxCoder",
+        "target_means": [0.0, 0.0, 0.0, 0.0],
+        "target_stds": [1.0, 1.0, 1.0, 1.0]
+      },
+      "loss_cls": {
+        "type": "CrossEntropyLoss",
+        "use_sigmoid": true,
+        "loss_weight": 1.0
+      },
+      "loss_bbox": { "type": "L1Loss", "loss_weight": 1.0 }
+    },
+    "roi_head": {
+      "type": "StandardRoIHead",
+      "bbox_roi_extractor": {
+        "type": "SingleRoIExtractor",
+        "roi_layer": {
+          "type": "RoIAlign",
+          "output_size": 7,
+          "sampling_ratio": 0
+        },
+        "out_channels": 256,
+        "featmap_strides": [4, 8, 16, 32]
+      },
+      "bbox_head": {
+        "type": "Shared2FCBBoxHead",
+        "in_channels": 256,
+        "fc_out_channels": 1024,
+        "roi_feat_size": 7,
+        "num_classes": 37,
+        "bbox_coder": {
+          "type": "DeltaXYWHBBoxCoder",
+          "target_means": [0.0, 0.0, 0.0, 0.0],
+          "target_stds": [0.1, 0.1, 0.2, 0.2]
+        },
+        "reg_class_agnostic": false,
+        "loss_cls": {
+          "type": "CrossEntropyLoss",
+          "use_sigmoid": false,
+          "loss_weight": 1.0
+        },
+        "loss_bbox": { "type": "L1Loss", "loss_weight": 1.0 }
+      }
+    },
+    "train_cfg": {
+      "rpn": {
+        "assigner": {
+          "type": "MaxIoUAssigner",
+          "pos_iou_thr": 0.7,
+          "neg_iou_thr": 0.3,
+          "min_pos_iou": 0.3,
+          "match_low_quality": true,
+          "ignore_iof_thr": -1
+        },
+        "sampler": {
+          "type": "RandomSampler",
+          "num": 256,
+          "pos_fraction": 0.5,
+          "neg_pos_ub": -1,
+          "add_gt_as_proposals": false
+        },
+        "allowed_border": -1,
+        "pos_weight": -1,
+        "debug": false
+      },
+      "rpn_proposal": {
+        "nms_pre": 2000,
+        "max_per_img": 1000,
+        "nms": { "type": "nms", "iou_threshold": 0.7 },
+        "min_bbox_size": 0
+      },
+      "rcnn": {
+        "assigner": {
+          "type": "MaxIoUAssigner",
+          "pos_iou_thr": 0.5,
+          "neg_iou_thr": 0.5,
+          "min_pos_iou": 0.5,
+          "match_low_quality": false,
+          "ignore_iof_thr": -1
+        },
+        "sampler": {
+          "type": "RandomSampler",
+          "num": 512,
+          "pos_fraction": 0.25,
+          "neg_pos_ub": -1,
+          "add_gt_as_proposals": true
+        },
+        "pos_weight": -1,
+        "debug": false
+      }
+    },
+    "test_cfg": {
+      "rpn": {
+        "nms_pre": 1000,
+        "max_per_img": 1000,
+        "nms": { "type": "nms", "iou_threshold": 0.7 },
+        "min_bbox_size": 0
+      },
+      "rcnn": {
+        "score_thr": 0.05,
+        "nms": { "type": "nms", "iou_threshold": 0.5 },
+        "max_per_img": 100
+      }
+    }
+  },
+  "dataset_type": "CocoDataset",
+  "data_root": "data/asdr6-3-1000oa-split8020/",
+  "backend_args": null,
+  "train_pipeline": [
+    { "type": "LoadImageFromFile", "backend_args": null },
+    { "type": "LoadAnnotations", "with_bbox": true },
+    {
+      "type": "RandomChoiceResize",
+      "scales": [
+        [1333, 640],
+        [1333, 672],
+        [1333, 704],
+        [1333, 736],
+        [1333, 768],
+        [1333, 800]
+      ],
+      "keep_ratio": true
+    },
+    { "type": "RandomFlip", "prob": 0.5 },
+    { "type": "PackDetInputs" }
+  ],
+  "test_pipeline": [
+    { "type": "LoadImageFromFile", "backend_args": null },
+    { "type": "Resize", "scale": [1280, 1280], "keep_ratio": true },
+    { "type": "LoadAnnotations", "with_bbox": true },
+    {
+      "type": "PackDetInputs",
+      "meta_keys": [
+        "img_id",
+        "img_path",
+        "ori_shape",
+        "img_shape",
+        "scale_factor"
+      ]
+    }
+  ],
+  "train_dataloader": {
+    "batch_size": 8,
+    "num_workers": 4,
+    "persistent_workers": true,
+    "sampler": { "type": "DefaultSampler", "shuffle": true },
+    "batch_sampler": { "type": "AspectRatioBatchSampler" },
+    "dataset": {
+      "type": "CocoDataset",
+      "data_root": "data/asdr6-3-1000oa-split8020/",
+      "ann_file": "annotations/train.json",
+      "data_prefix": { "img": "images/" },
+      "filter_cfg": { "filter_empty_gt": true, "min_size": 32 },
+      "pipeline": [
+        { "type": "LoadImageFromFile", "backend_args": null },
+        { "type": "LoadAnnotations", "with_bbox": true },
+        {
+          "type": "RandomChoiceResize",
+          "scales": [
+            [1333, 640],
+            [1333, 672],
+            [1333, 704],
+            [1333, 736],
+            [1333, 768],
+            [1333, 800]
+          ],
+          "keep_ratio": true
+        },
+        { "type": "RandomFlip", "prob": 0.5 },
+        { "type": "PackDetInputs" }
+      ],
+      "backend_args": null,
+      "metainfo": {
+        "classes": [
+          "11522_tx_dyn1",
+          "11522_tx_ynyn0d1",
+          "115_1way_ds_w_motor",
+          "115_3ways_ds_w_motor",
+          "115_breaker",
+          "115_buffer",
+          "115_cvt_1p",
+          "115_cvt_3p",
+          "115_ds",
+          "115_gs",
+          "115_gs_w_motor",
+          "115_la",
+          "115_vt_1p",
+          "115_vt_3p",
+          "22_breaker",
+          "22_cap_bank",
+          "22_ds",
+          "22_ds_la_out",
+          "22_gs",
+          "22_ll",
+          "22_vt_3p",
+          "BCU",
+          "DIM",
+          "DPM",
+          "LL",
+          "MU",
+          "NGR_future",
+          "Q",
+          "remote_io_module",
+          "ss_man_mode",
+          "tele_protection",
+          "terminator_double",
+          "terminator_single",
+          "terminator_splicing_kits",
+          "terminator_w_future",
+          "v_m",
+          "v_m_digital"
+        ],
+        "palette": [
+          [0, 0, 0],
+          [66, 0, 75],
+          [120, 0, 137],
+          [130, 0, 147],
+          [105, 0, 156],
+          [30, 0, 166],
+          [0, 0, 187],
+          [0, 0, 215],
+          [0, 52, 221],
+          [0, 119, 221],
+          [0, 137, 221],
+          [0, 154, 215],
+          [0, 164, 187],
+          [0, 170, 162],
+          [0, 170, 143],
+          [0, 164, 90],
+          [0, 154, 15],
+          [0, 168, 0],
+          [0, 186, 0],
+          [0, 205, 0],
+          [0, 224, 0],
+          [0, 243, 0],
+          [41, 255, 0],
+          [145, 255, 0],
+          [203, 249, 0],
+          [232, 239, 0],
+          [245, 222, 0],
+          [255, 204, 0],
+          [255, 175, 0],
+          [255, 136, 0],
+          [255, 51, 0],
+          [247, 0, 0],
+          [228, 0, 0],
+          [215, 0, 0],
+          [205, 0, 0],
+          [204, 90, 90],
+          [204, 204, 204]
+        ]
+      }
+    }
+  },
+  "val_dataloader": {
+    "batch_size": 1,
+    "num_workers": 2,
+    "persistent_workers": true,
+    "drop_last": false,
+    "sampler": { "type": "DefaultSampler", "shuffle": false },
+    "dataset": {
+      "type": "CocoDataset",
+      "data_root": "data/asdr6-3-1000oa-split8020/",
+      "ann_file": "annotations/val.json",
+      "data_prefix": { "img": "images/" },
+      "test_mode": true,
+      "pipeline": [
+        { "type": "LoadImageFromFile", "backend_args": null },
+        { "type": "Resize", "scale": [1280, 1280], "keep_ratio": true },
+        { "type": "LoadAnnotations", "with_bbox": true },
+        {
+          "type": "PackDetInputs",
+          "meta_keys": [
+            "img_id",
+            "img_path",
+            "ori_shape",
+            "img_shape",
+            "scale_factor"
+          ]
+        }
+      ],
+      "backend_args": null,
+      "metainfo": {
+        "classes": [
+          "11522_tx_dyn1",
+          "11522_tx_ynyn0d1",
+          "115_1way_ds_w_motor",
+          "115_3ways_ds_w_motor",
+          "115_breaker",
+          "115_buffer",
+          "115_cvt_1p",
+          "115_cvt_3p",
+          "115_ds",
+          "115_gs",
+          "115_gs_w_motor",
+          "115_la",
+          "115_vt_1p",
+          "115_vt_3p",
+          "22_breaker",
+          "22_cap_bank",
+          "22_ds",
+          "22_ds_la_out",
+          "22_gs",
+          "22_ll",
+          "22_vt_3p",
+          "BCU",
+          "DIM",
+          "DPM",
+          "LL",
+          "MU",
+          "NGR_future",
+          "Q",
+          "remote_io_module",
+          "ss_man_mode",
+          "tele_protection",
+          "terminator_double",
+          "terminator_single",
+          "terminator_splicing_kits",
+          "terminator_w_future",
+          "v_m",
+          "v_m_digital"
+        ],
+        "palette": [
+          [0, 0, 0],
+          [66, 0, 75],
+          [120, 0, 137],
+          [130, 0, 147],
+          [105, 0, 156],
+          [30, 0, 166],
+          [0, 0, 187],
+          [0, 0, 215],
+          [0, 52, 221],
+          [0, 119, 221],
+          [0, 137, 221],
+          [0, 154, 215],
+          [0, 164, 187],
+          [0, 170, 162],
+          [0, 170, 143],
+          [0, 164, 90],
+          [0, 154, 15],
+          [0, 168, 0],
+          [0, 186, 0],
+          [0, 205, 0],
+          [0, 224, 0],
+          [0, 243, 0],
+          [41, 255, 0],
+          [145, 255, 0],
+          [203, 249, 0],
+          [232, 239, 0],
+          [245, 222, 0],
+          [255, 204, 0],
+          [255, 175, 0],
+          [255, 136, 0],
+          [255, 51, 0],
+          [247, 0, 0],
+          [228, 0, 0],
+          [215, 0, 0],
+          [205, 0, 0],
+          [204, 90, 90],
+          [204, 204, 204]
+        ]
+      }
+    }
+  },
+  "test_dataloader": {
+    "batch_size": 1,
+    "num_workers": 2,
+    "persistent_workers": true,
+    "drop_last": false,
+    "sampler": { "type": "DefaultSampler", "shuffle": false },
+    "dataset": {
+      "type": "CocoDataset",
+      "data_root": "data/asdr6-3-1000oa-split8020/",
+      "ann_file": "annotations/val.json",
+      "data_prefix": { "img": "images/" },
+      "test_mode": true,
+      "pipeline": [
+        { "type": "LoadImageFromFile", "backend_args": null },
+        { "type": "Resize", "scale": [1280, 1280], "keep_ratio": true },
+        { "type": "LoadAnnotations", "with_bbox": true },
+        {
+          "type": "PackDetInputs",
+          "meta_keys": [
+            "img_id",
+            "img_path",
+            "ori_shape",
+            "img_shape",
+            "scale_factor"
+          ]
+        }
+      ],
+      "backend_args": null,
+      "metainfo": {
+        "classes": [
+          "11522_tx_dyn1",
+          "11522_tx_ynyn0d1",
+          "115_1way_ds_w_motor",
+          "115_3ways_ds_w_motor",
+          "115_breaker",
+          "115_buffer",
+          "115_cvt_1p",
+          "115_cvt_3p",
+          "115_ds",
+          "115_gs",
+          "115_gs_w_motor",
+          "115_la",
+          "115_vt_1p",
+          "115_vt_3p",
+          "22_breaker",
+          "22_cap_bank",
+          "22_ds",
+          "22_ds_la_out",
+          "22_gs",
+          "22_ll",
+          "22_vt_3p",
+          "BCU",
+          "DIM",
+          "DPM",
+          "LL",
+          "MU",
+          "NGR_future",
+          "Q",
+          "remote_io_module",
+          "ss_man_mode",
+          "tele_protection",
+          "terminator_double",
+          "terminator_single",
+          "terminator_splicing_kits",
+          "terminator_w_future",
+          "v_m",
+          "v_m_digital"
+        ],
+        "palette": [
+          [0, 0, 0],
+          [66, 0, 75],
+          [120, 0, 137],
+          [130, 0, 147],
+          [105, 0, 156],
+          [30, 0, 166],
+          [0, 0, 187],
+          [0, 0, 215],
+          [0, 52, 221],
+          [0, 119, 221],
+          [0, 137, 221],
+          [0, 154, 215],
+          [0, 164, 187],
+          [0, 170, 162],
+          [0, 170, 143],
+          [0, 164, 90],
+          [0, 154, 15],
+          [0, 168, 0],
+          [0, 186, 0],
+          [0, 205, 0],
+          [0, 224, 0],
+          [0, 243, 0],
+          [41, 255, 0],
+          [145, 255, 0],
+          [203, 249, 0],
+          [232, 239, 0],
+          [245, 222, 0],
+          [255, 204, 0],
+          [255, 175, 0],
+          [255, 136, 0],
+          [255, 51, 0],
+          [247, 0, 0],
+          [228, 0, 0],
+          [215, 0, 0],
+          [205, 0, 0],
+          [204, 90, 90],
+          [204, 204, 204]
+        ]
+      }
+    }
+  },
+  "val_evaluator": {
+    "type": "CocoMetric",
+    "ann_file": "data/asdr6-3-1000oa-split8020/annotations/val.json",
+    "metric": "bbox",
+    "format_only": false,
+    "proposal_nums": [100, 1, 10],
+    "backend_args": null
+  },
+  "test_evaluator": {
+    "type": "CocoMetric",
+    "ann_file": "data/asdr6-3-1000oa-split8020/annotations/val.json",
+    "metric": "bbox",
+    "format_only": false,
+    "proposal_nums": [100, 1, 10],
+    "backend_args": null
+  },
+  "train_cfg": {
+    "type": "EpochBasedTrainLoop",
+    "max_epochs": 300,
+    "val_interval": 1
+  },
+  "val_cfg": { "type": "ValLoop" },
+  "test_cfg": { "type": "TestLoop" },
+  "param_scheduler": [
+    {
+      "type": "LinearLR",
+      "start_factor": 0.001,
+      "by_epoch": false,
+      "begin": 0,
+      "end": 500
+    },
+    {
+      "type": "MultiStepLR",
+      "begin": 0,
+      "end": 300,
+      "by_epoch": true,
+      "milestones": [240, 280],
+      "gamma": 0.1
+    }
+  ],
+  "optim_wrapper": {
+    "type": "OptimWrapper",
+    "optimizer": {
+      "type": "SGD",
+      "lr": 0.02,
+      "momentum": 0.9,
+      "weight_decay": 0.0001
+    }
+  },
+  "auto_scale_lr": { "enable": false, "base_batch_size": 16 },
+  "default_scope": "mmdet",
+  "default_hooks": {
+    "timer": { "type": "IterTimerHook" },
+    "logger": { "type": "LoggerHook", "interval": 50 },
+    "param_scheduler": { "type": "ParamSchedulerHook" },
+    "checkpoint": { "type": "CheckpointHook", "interval": 1 },
+    "sampler_seed": { "type": "DistSamplerSeedHook" },
+    "visualization": { "type": "DetVisualizationHook" }
+  },
+  "env_cfg": {
+    "cudnn_benchmark": false,
+    "mp_cfg": { "mp_start_method": "fork", "opencv_num_threads": 0 },
+    "dist_cfg": { "backend": "nccl" }
+  },
+  "isTest": false,
+  "vis_backends": [
+    { "type": "LocalVisBackend" },
+    { "type": "WandbVisBackend", "init_kwargs": { "project": "mmyolo-tools" } }
+  ],
+  "visualizer": {
+    "type": "DetLocalVisualizer",
+    "vis_backends": [
+      { "type": "LocalVisBackend" },
+      {
+        "type": "WandbVisBackend",
+        "init_kwargs": { "project": "mmyolo-tools" }
+      }
+    ],
+    "name": "visualizer"
+  },
+  "log_processor": {
+    "type": "LogProcessor",
+    "window_size": 50,
+    "by_epoch": true
+  },
+  "log_level": "INFO",
+  "load_from": "https://download.openmmlab.com/mmdetection/v2.0/faster_rcnn/faster_rcnn_r50_caffe_fpn_mstrain_3x_coco/faster_rcnn_r50_caffe_fpn_mstrain_3x_coco_bbox_mAP-0.398_20200504_163323-30042637.pth",
+  "resume": false,
+  "class_name": [
+    "11522_tx_dyn1",
+    "11522_tx_ynyn0d1",
+    "115_1way_ds_w_motor",
+    "115_3ways_ds_w_motor",
+    "115_breaker",
+    "115_buffer",
+    "115_cvt_1p",
+    "115_cvt_3p",
+    "115_ds",
+    "115_gs",
+    "115_gs_w_motor",
+    "115_la",
+    "115_vt_1p",
+    "115_vt_3p",
+    "22_breaker",
+    "22_cap_bank",
+    "22_ds",
+    "22_ds_la_out",
+    "22_gs",
+    "22_ll",
+    "22_vt_3p",
+    "BCU",
+    "DIM",
+    "DPM",
+    "LL",
+    "MU",
+    "NGR_future",
+    "Q",
+    "remote_io_module",
+    "ss_man_mode",
+    "tele_protection",
+    "terminator_double",
+    "terminator_single",
+    "terminator_splicing_kits",
+    "terminator_w_future",
+    "v_m",
+    "v_m_digital"
+  ],
+  "num_classes": 37,
+  "palette": [
+    [0, 0, 0],
+    [66, 0, 75],
+    [120, 0, 137],
+    [130, 0, 147],
+    [105, 0, 156],
+    [30, 0, 166],
+    [0, 0, 187],
+    [0, 0, 215],
+    [0, 52, 221],
+    [0, 119, 221],
+    [0, 137, 221],
+    [0, 154, 215],
+    [0, 164, 187],
+    [0, 170, 162],
+    [0, 170, 143],
+    [0, 164, 90],
+    [0, 154, 15],
+    [0, 168, 0],
+    [0, 186, 0],
+    [0, 205, 0],
+    [0, 224, 0],
+    [0, 243, 0],
+    [41, 255, 0],
+    [145, 255, 0],
+    [203, 249, 0],
+    [232, 239, 0],
+    [245, 222, 0],
+    [255, 204, 0],
+    [255, 175, 0],
+    [255, 136, 0],
+    [255, 51, 0],
+    [247, 0, 0],
+    [228, 0, 0],
+    [215, 0, 0],
+    [205, 0, 0],
+    [204, 90, 90],
+    [204, 204, 204]
+  ],
+  "metainfo": {
+    "classes": [
+      "11522_tx_dyn1",
+      "11522_tx_ynyn0d1",
+      "115_1way_ds_w_motor",
+      "115_3ways_ds_w_motor",
+      "115_breaker",
+      "115_buffer",
+      "115_cvt_1p",
+      "115_cvt_3p",
+      "115_ds",
+      "115_gs",
+      "115_gs_w_motor",
+      "115_la",
+      "115_vt_1p",
+      "115_vt_3p",
+      "22_breaker",
+      "22_cap_bank",
+      "22_ds",
+      "22_ds_la_out",
+      "22_gs",
+      "22_ll",
+      "22_vt_3p",
+      "BCU",
+      "DIM",
+      "DPM",
+      "LL",
+      "MU",
+      "NGR_future",
+      "Q",
+      "remote_io_module",
+      "ss_man_mode",
+      "tele_protection",
+      "terminator_double",
+      "terminator_single",
+      "terminator_splicing_kits",
+      "terminator_w_future",
+      "v_m",
+      "v_m_digital"
+    ],
+    "palette": [
+      [0, 0, 0],
+      [66, 0, 75],
+      [120, 0, 137],
+      [130, 0, 147],
+      [105, 0, 156],
+      [30, 0, 166],
+      [0, 0, 187],
+      [0, 0, 215],
+      [0, 52, 221],
+      [0, 119, 221],
+      [0, 137, 221],
+      [0, 154, 215],
+      [0, 164, 187],
+      [0, 170, 162],
+      [0, 170, 143],
+      [0, 164, 90],
+      [0, 154, 15],
+      [0, 168, 0],
+      [0, 186, 0],
+      [0, 205, 0],
+      [0, 224, 0],
+      [0, 243, 0],
+      [41, 255, 0],
+      [145, 255, 0],
+      [203, 249, 0],
+      [232, 239, 0],
+      [245, 222, 0],
+      [255, 204, 0],
+      [255, 175, 0],
+      [255, 136, 0],
+      [255, 51, 0],
+      [247, 0, 0],
+      [228, 0, 0],
+      [215, 0, 0],
+      [205, 0, 0],
+      [204, 90, 90],
+      [204, 204, 204]
+    ]
+  }
+}

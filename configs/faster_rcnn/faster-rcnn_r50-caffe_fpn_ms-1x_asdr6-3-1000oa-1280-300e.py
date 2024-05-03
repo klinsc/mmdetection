@@ -1,4 +1,4 @@
-_base_ = "./faster-rcnn_r50-caffe_fpn_ms-1x_coco.py"
+_base_ = "./faster-rcnn_r50-caffe_fpn_ms-1x_coco_1280.py"
 
 class_name = (
     "11522_tx_dyn1",

@@ -1,4 +1,4 @@
-_base_ = "./faster-rcnn_r50-caffe_fpn_ms-1x_coco.py"
+_base_ = "./faster-rcnn_r50-caffe_fpn_ms-1x_coco_640.py"
 
 class_name = (
     "11522_tx_dyn1",
@@ -86,7 +86,9 @@ metainfo = {
     "palette": palette,
 }
 
-train_dataloader = dict(dataset=dict(metainfo=metainfo), batch_size=16, num_workers=8)
+train_dataloader = dict(
+    dataset=dict(metainfo=metainfo),
+)
 val_dataloader = dict(dataset=dict(metainfo=metainfo))
 test_dataloader = val_dataloader
 
