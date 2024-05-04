@@ -28,13 +28,9 @@ model = dict(
         feat_channels=256,
         anchor_generator=dict(
             type="AnchorGenerator",
+            scales=[8],
             ratios=[0.5, 1.0, 2.0],
-            base_sizes=[
-                [[6, 5], [5, 8], [8, 12]],
-                [[12, 8], [16, 10], [10, 16]],
-                [[7, 29], [28, 12], [16, 26]],
-                [[32, 31], [39, 41], [67, 65]],
-            ],
+            strides=[4, 8, 16, 32, 64],
         ),
         bbox_coder=dict(
             type="DeltaXYWHBBoxCoder",
